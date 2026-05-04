@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoupMeme DApp - Sepolia</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0a0e17;color:#e2e8f0;min-height:100vh}
+#app{max-width:1100px;margin:0 auto;padding:20px}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid #1e293b;margin-bottom:20px}
+header h1{font-size:24px;color:#f1f5f9}
+.tag{font-size:12px;background:#7c3aed;color:#fff;padding:2px 8px;border-radius:10px;vertical-align:middle}
+#connectBtn{background:#3b82f6;color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:.2s}
+#connectBtn:hover{background:#2563eb}
+#connectBtn.connected{background:#059669}
+.hidden{display:none!important}
+#status-bar{background:#111827;border:1px solid #1e293b;border-radius:12px;padding:16px 20px;margin-bottom:20px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.info-item{display:flex;flex-direction:column;gap:2px}
+.info-item label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.info-item span{font-size:14px;color:#e2e8f0;word-break:break-all}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.panel{background:#111827;border:1px solid #1e293b;border-radius:12px;padding:20px}
+.panel h2{font-size:18px;margin-bottom:4px;color:#f8fafc}
+.desc{font-size:12px;color:#64748b;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;position:relative}
+.field label{font-size:12px;color:#94a3b8}
+.field input{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 12px;color:#e2e8f0;font-size:14px;width:100%}
+.field input:focus{outline:none;border-color:#3b82f6}
+.max-btn{position:absolute;right:8px;bottom:8px;background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+.estimate{font-size:12px;color:#94a3b8;margin-bottom:12px;min-height:18px}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;margin-bottom:6px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.buy{background:#059669;color:#fff}.btn.buy:hover{background:#047857}
+.btn.sell{background:#dc2626;color:#fff}.btn.sell:hover{background:#b91c1c}
+.btn.borrow{background:#7c3aed;color:#fff}.btn.borrow:hover{background:#6d28d9}
+.btn.borrow-more{background:#4c1d95;color:#fff}.btn.borrow-more:hover{background:#3b0764}
+.btn.repay{background:#2563eb;color:#fff}.btn.repay:hover{background:#1d4ed8}
+.loan-info{font-size:13px;color:#94a3b8;margin-bottom:12px;line-height:1.8}
+#txLog{margin-top:20px;background:#111827;border:1px solid #1e293b;border-radius:12px;padding:16px 20px}
+#txLog h3{font-size:14px;color:#94a3b8;margin-bottom:10px}
+#logContent{max-height:200px;overflow-y:auto;font-size:12px;font-family:'Courier New',monospace}
+.log-entry{padding:4px 0;border-bottom:1px solid #1e293b;line-height:1.5}
+.log-ok{color:#34d399}.log-err{color:#f87171}.log-info{color:#60a5fa}
+@media(max-width:600px){.panels{grid-template-columns:1fr}.info-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>GoupMeme <span class="tag">Sepolia</span></h1>
+    <button id="connectBtn" onclick="connectWallet()">连接钱包</button>
+  </header>
+  <div id="status-bar" class="hidden">
+    <div class="info-grid">
+      <div class="info-item"><label>账户地址</label><span id="account">-</span></div>
+      <div class="info-item"><label>ETH 余额</label><span id="ethBal">-</span></div>
+      <div class="info-item"><label>TMEME 余额</label><span id="tokenBal">-</span></div>
+      <div class="info-item"><label>当前价格</label><span id="curPrice">-</span></div>
+      <div class="info-item"><label>地板价</label><span id="floorPx">-</span></div>
+      <div class="info-item"><label>总供应量</label><span id="totalSupply">-</span></div>
+    </div>
+  </div>
+  <div class="panels">
+    <!-- 买入 -->
+    <div class="panel">
+      <h2>买入 TMEME</h2>
+      <p class="desc">使用 ETH 购买 TMEME 代币</p>
+      <div class="field"><label>ETH 数量</label><input id="buyAmt" type="text" placeholder="0.01"></div>
+      <div class="estimate" id="buyEst"></div>
+      <button class="btn buy" onclick="doBuy()">买入</button>
+    </div>
+    <!-- 卖出 -->
+    <div class="panel">
+      <h2>卖出 TMEME</h2>
+      <p class="desc">卖出 TMEME 代币换回 ETH</p>
+      <div class="field"><label>TMEME 数量</label><input id="sellAmt" type="text" placeholder="1000"><button class="max-btn" onclick="fillMax('sell')">MAX</button></div>
+      <div class="estimate" id="sellEst"></div>
+      <button class="btn sell" onclick="doSell()">卖出</button>
+    </div>
+    <!-- 借贷 -->
+    <div class="panel">
+      <h2>借贷 ETH</h2>
+      <p class="desc">锁定 TMEME 作为抵押品，借出 ETH</p>
+      <div class="field"><label>锁定 TMEME 数量</label><input id="borrowAmt" type="text" placeholder="1000"><button class="max-btn" onclick="fillMax('borrow')">MAX</button></div>
+      <div class="loan-info">
+        <div>已锁定抵押品: <span id="colBal">0</span></div>
+        <div>待还债务: <span id="debtBal">0</span> ETH</div>
+      </div>
+      <button class="btn borrow" onclick="doBorrow()">借贷</button>
+      <button class="btn borrow-more" onclick="doBorrowMore()">追加借款</button>
+    </div>
+    <!-- 偿还 -->
+    <div class="panel">
+      <h2>偿还贷款</h2>
+      <p class="desc">偿还 ETH 债务，解锁 TMEME 抵押品</p>
+      <div class="field"><label>偿还 ETH 数量</label><input id="repayAmt" type="text" placeholder="0.01"><button class="max-btn" onclick="fillMaxRepay()">MAX</button></div>
+      <button class="btn repay" onclick="doRepay()">偿还</button>
+    </div>
+  </div>
+  <div id="txLog"><h3>交易日志</h3><div id="logContent"></div></div>
+</div>
+<script>
+const CHAIN_ID = 11155111;
+const CHAIN_HEX = '0xaa36a7';
+const RPC = 'https://rpc.sepolia.org';
+const EXPLORER = 'https://sepolia.etherscan.io';
+const CONTRACTS = {
+  token:  '0x127dD5234238a0823848b0730FBdD9Bcc48a05Eb',
+  hook:   '0xeeae60d08057668fb0eeb2ea87b173376d0ea888',
+  router: '0xeC76d88CA1c339D0455306bcdfDcD11083B07F5d',
+};
+const POOL_KEY = {
+  currency0: '0x0000000000000000000000000000000000000000',
+  currency1: CONTRACTS.token,
+  fee: 3000,
+  tickSpacing: 60,
+  hooks: CONTRACTS.hook,
+};
+const POOL_KEY_TUPLE = [POOL_KEY.currency0,POOL_KEY.currency1,POOL_KEY.fee,POOL_KEY.tickSpacing,POOL_KEY.hooks];
+
+const ERC20_ABI = [
+  'function balanceOf(address) view returns (uint256)',
+  'function totalSupply() view returns (uint256)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+  'function symbol() view returns (string)',
+];
+const ROUTER_ABI = [
+  'function buy(tuple(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key, uint256 minTokensOut) payable',
+  'function sell(tuple(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key, uint256 tokenAmount, uint256 minEthOut)',
+];
+const HOOK_ABI = [
+  'function getEffectivePrice() view returns (uint256)',
+  'function floorPrice() view returns (uint256)',
+  'function realETH() view returns (uint256)',
+  'function effectiveETH() view returns (uint256)',
+  'function totalBorrowedETH() view returns (uint256)',
+  'function collateralBalance(address) view returns (uint256)',
+  'function borrowedETH(address) view returns (uint256)',
+  'function collateralSupply() view returns (uint256)',
+  'function estimateBuy(uint256 ethIn) view returns (uint256 tokensOut, uint256 platformFee, uint256 floorBoostFee)',
+  'function estimateSell(uint256 tokenAmount) view returns (uint256 ethOut, uint256 platformFee, uint256 floorBoostFee)',
+  'function estimateBorrowMore(address user) view returns (uint256 additionalEth, uint256 fee)',
+  'function borrow(uint256 amount)',
+  'function borrowMore()',
+  'function repay() payable',
+];
+
+let provider, signer, account;
+let tokenC, routerC, hookC;
+let tokenR, hookR; // read-only
+
+const fmt = (v, d=18) => {
+  const s = ethers.formatUnits(v, d);
+  const n = parseFloat(s);
+  if (n === 0) return '0';
+  if (n < 0.000001) return n.toExponential(4);
+  if (n < 1) return n.toPrecision(6);
+  return n.toLocaleString('en', {maximumFractionDigits:6});
+};
+const pe = (v) => ethers.parseEther(v);
+
+function log(msg, cls='log-info') {
+  const d = document.getElementById('logContent');
+  const t = new Date().toLocaleTimeString();
+  d.innerHTML = `<div class="log-entry ${cls}">[${t}] ${msg}</div>` + d.innerHTML;
+}
+
+async function connectWallet() {
+  if (!window.ethereum) { alert('请先安装 MetaMask 钱包'); return; }
+  try {
+    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+    const chainId = await window.ethereum.request({method:'eth_chainId'});
+    if (parseInt(chainId,16) !== CHAIN_ID) {
+      try {
+        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:CHAIN_HEX}]});
+      } catch(e) {
+        if (e.code === 4902) {
+          await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
+            chainId:CHAIN_HEX,chainName:'Sepolia Testnet',
+            nativeCurrency:{name:'SepoliaETH',symbol:'SepoliaETH',decimals:18},
+            rpcUrls:['https://rpc.sepolia.org'],
+            blockExplorerUrls:[EXPLORER]
+          }]});
+        } else throw e;
+      }
+    }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+
+    tokenC = new ethers.Contract(CONTRACTS.token, ERC20_ABI, signer);
+    routerC = new ethers.Contract(CONTRACTS.router, ROUTER_ABI, signer);
+    hookC = new ethers.Contract(CONTRACTS.hook, HOOK_ABI, signer);
+    tokenR = new ethers.Contract(CONTRACTS.token, ERC20_ABI, provider);
+    hookR = new ethers.Contract(CONTRACTS.hook, HOOK_ABI, provider);
+
+    document.getElementById('connectBtn').textContent = account.slice(0,6)+'...'+account.slice(-4);
+    document.getElementById('connectBtn').classList.add('connected');
+    document.getElementById('status-bar').classList.remove('hidden');
+    log('钱包已连接: '+account, 'log-ok');
+    refreshData();
+  } catch(e) { log('连接失败: '+e.message, 'log-err'); }
+}
+
+async function refreshData() {
+  if (!account) return;
+  try {
+    const [ethBal, tokenBal, price, floor, supply] = await Promise.all([
+      provider.getBalance(account),
+      tokenR.balanceOf(account),
+      hookR.getEffectivePrice(),
+      hookR.floorPrice(),
+      tokenR.totalSupply(),
+    ]);
+    document.getElementById('account').textContent = account.slice(0,6)+'...'+account.slice(-4);
+    document.getElementById('ethBal').textContent = fmt(ethBal)+' ETH';
+    document.getElementById('tokenBal').textContent = fmt(tokenBal)+' TMEME';
+    document.getElementById('curPrice').textContent = fmt(price)+' ETH';
+    document.getElementById('floorPx').textContent = fmt(floor)+' ETH';
+    document.getElementById('totalSupply').textContent = fmt(supply);
+
+    const [colBal, debt] = await Promise.all([
+      hookR.collateralBalance(account),
+      hookR.borrowedETH(account),
+    ]);
+    document.getElementById('colBal').textContent = fmt(colBal)+' TMEME';
+    document.getElementById('debtBal').textContent = fmt(debt);
+    // store for max buttons
+    window._tokenBal = tokenBal;
+    window._debt = debt;
+  } catch(e) { console.error('refresh error', e); }
+}
+
+function fillMax(type) {
+  if (!window._tokenBal) return;
+  const v = ethers.formatEther(window._tokenBal);
+  if (type === 'sell') document.getElementById('sellAmt').value = v;
+  if (type === 'borrow') document.getElementById('borrowAmt').value = v;
+}
+function fillMaxRepay() {
+  if (!window._debt) return;
+  document.getElementById('repayAmt').value = ethers.formatEther(window._debt);
+}
+
+// Estimate on input
+document.getElementById('buyAmt').addEventListener('input', async function(){
+  const el = document.getElementById('buyEst');
+  try {
+    const v = this.value.trim();
+    if (!v || isNaN(v) || parseFloat(v)<=0){el.textContent='';return;}
+    const r = await hookR.estimateBuy(pe(v));
+    el.textContent = `≈ ${fmt(r.tokensOut)} TMEME (手续费: ${fmt(r.platformFee)} + ${fmt(r.floorBoostFee)} ETH)`;
+  } catch(e){el.textContent='无法估算';}
+});
+document.getElementById('sellAmt').addEventListener('input', async function(){
+  const el = document.getElementById('sellEst');
+  try {
+    const v = this.value.trim();
+    if (!v || isNaN(v) || parseFloat(v)<=0){el.textContent='';return;}
+    const r = await hookR.estimateSell(pe(v));
+    el.textContent = `≈ ${fmt(r.ethOut)} ETH`;
+  } catch(e){el.textContent='无法估算';}
+});
+
+async function ensureApproval(spender, amount) {
+  const allow = await tokenC.allowance(account, spender);
+  if (allow < amount) {
+    log('正在授权代币...', 'log-info');
+    const tx = await tokenC.approve(spender, ethers.MaxUint256);
+    await tx.wait();
+    log('授权成功', 'log-ok');
+  }
+}
+
+async function doBuy() {
+  try {
+    const v = document.getElementById('buyAmt').value.trim();
+    if (!v || parseFloat(v)<=0) { alert('请输入 ETH 数量'); return; }
+    const ethAmt = pe(v);
+    log(`正在使用 ${v} ETH 买入 TMEME...`);
+    const tx = await routerC.buy(POOL_KEY_TUPLE, 0, {value: ethAmt});
+    log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
+    await tx.wait();
+    log('买入成功!', 'log-ok');
+    refreshData();
+  } catch(e) { log('买入失败: '+(e.reason||e.message), 'log-err'); }
+}
+
+async function doSell() {
+  try {
+    const v = document.getElementById('sellAmt').value.trim();
+    if (!v || parseFloat(v)<=0) { alert('请输入 TMEME 数量'); return; }
+    const amt = pe(v);
+    await ensureApproval(CONTRACTS.router, amt);
+    log(`正在卖出 ${v} TMEME...`);
+    const tx = await routerC.sell(POOL_KEY_TUPLE, amt, 0);
+    log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
+    await tx.wait();
+    log('卖出成功!', 'log-ok');
+    refreshData();
+  } catch(e) { log('卖出失败: '+(e.reason||e.message), 'log-err'); }
+}
+
+async function doBorrow() {
+  try {
+    const v = document.getElementById('borrowAmt').value.trim();
+    if (!v || parseFloat(v)<=0) { alert('请输入 TMEME 数量'); return; }
+    const amt = pe(v);
+    await ensureApproval(CONTRACTS.hook, amt);
+    log(`正在使用 ${v} TMEME 抵押借贷...`);
+    const tx = await hookC.borrow(amt);
+    log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
+    await tx.wait();
+    log('借贷成功!', 'log-ok');
+    refreshData();
+  } catch(e) { log('借贷失败: '+(e.reason||e.message), 'log-err'); }
+}
+
+async function doBorrowMore() {
+  try {
+    log('正在追加借款...');
+    const tx = await hookC.borrowMore();
+    log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
+    await tx.wait();
+    log('追加借款成功!', 'log-ok');
+    refreshData();
+  } catch(e) { log('追加借款失败: '+(e.reason||e.message), 'log-err'); }
+}
+
+async function doRepay() {
+  try {
+    const v = document.getElementById('repayAmt').value.trim();
+    if (!v || parseFloat(v)<=0) { alert('请输入 ETH 数量'); return; }
+    const ethAmt = pe(v);
+    log(`正在偿还 ${v} ETH...`);
+    const tx = await hookC.repay({value: ethAmt});
+    log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
+    await tx.wait();
+    log('偿还成功!', 'log-ok');
+    refreshData();
+  } catch(e) { log('偿还失败: '+(e.reason||e.message), 'log-err'); }
+}
+
+// Auto-refresh
+setInterval(()=>{ if(account) refreshData(); }, 15000);
+
+// Chain change listener
+if (window.ethereum) {
+  window.ethereum.on('chainChanged', ()=>window.location.reload());
+  window.ethereum.on('accountsChanged', (a)=>{
+    if(a.length===0){account=null;document.getElementById('status-bar').classList.add('hidden');}
+    else connectWallet();
+  });
+}
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
