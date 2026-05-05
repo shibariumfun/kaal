@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GoupMeme DApp - Sepolia</title>
+<title>Hook DApp - Sepolia</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -50,14 +50,14 @@ header h1{font-size:24px;color:#f1f5f9}
 <body>
 <div id="app">
   <header>
-    <h1>GoupMeme <span class="tag">Sepolia</span></h1>
+    <h1>Hook <span class="tag">Sepolia</span></h1>
     <button id="connectBtn" onclick="connectWallet()">连接钱包</button>
   </header>
   <div id="status-bar" class="hidden">
     <div class="info-grid">
       <div class="info-item"><label>账户地址</label><span id="account">-</span></div>
       <div class="info-item"><label>ETH 余额</label><span id="ethBal">-</span></div>
-      <div class="info-item"><label>TMEME 余额</label><span id="tokenBal">-</span></div>
+      <div class="info-item"><label>HOOK 余额</label><span id="tokenBal">-</span></div>
       <div class="info-item"><label>当前价格</label><span id="curPrice">-</span></div>
       <div class="info-item"><label>地板价</label><span id="floorPx">-</span></div>
       <div class="info-item"><label>总供应量</label><span id="totalSupply">-</span></div>
@@ -66,25 +66,25 @@ header h1{font-size:24px;color:#f1f5f9}
   <div class="panels">
     <!-- 买入 -->
     <div class="panel">
-      <h2>买入 TMEME</h2>
-      <p class="desc">使用 ETH 购买 TMEME 代币</p>
+      <h2>买入 HOOK</h2>
+      <p class="desc">使用 ETH 购买 HOOK 代币</p>
       <div class="field"><label>ETH 数量</label><input id="buyAmt" type="text" placeholder="0.01"></div>
       <div class="estimate" id="buyEst"></div>
       <button class="btn buy" onclick="doBuy()">买入</button>
     </div>
     <!-- 卖出 -->
     <div class="panel">
-      <h2>卖出 TMEME</h2>
-      <p class="desc">卖出 TMEME 代币换回 ETH</p>
-      <div class="field"><label>TMEME 数量</label><input id="sellAmt" type="text" placeholder="1000"><button class="max-btn" onclick="fillMax('sell')">MAX</button></div>
+      <h2>卖出 HOOK</h2>
+      <p class="desc">卖出 HOOK 代币换回 ETH</p>
+      <div class="field"><label>HOOK 数量</label><input id="sellAmt" type="text" placeholder="1000"><button class="max-btn" onclick="fillMax('sell')">MAX</button></div>
       <div class="estimate" id="sellEst"></div>
       <button class="btn sell" onclick="doSell()">卖出</button>
     </div>
     <!-- 借贷 -->
     <div class="panel">
       <h2>借贷 ETH</h2>
-      <p class="desc">锁定 TMEME 作为抵押品，借出 ETH</p>
-      <div class="field"><label>锁定 TMEME 数量</label><input id="borrowAmt" type="text" placeholder="1000"><button class="max-btn" onclick="fillMax('borrow')">MAX</button></div>
+      <p class="desc">锁定 HOOK 作为抵押品，借出 ETH</p>
+      <div class="field"><label>锁定 HOOK 数量</label><input id="borrowAmt" type="text" placeholder="1000"><button class="max-btn" onclick="fillMax('borrow')">MAX</button></div>
       <div class="loan-info">
         <div>已锁定抵押品: <span id="colBal">0</span></div>
         <div>待还债务: <span id="debtBal">0</span> ETH</div>
@@ -95,7 +95,7 @@ header h1{font-size:24px;color:#f1f5f9}
     <!-- 偿还 -->
     <div class="panel">
       <h2>偿还贷款</h2>
-      <p class="desc">偿还 ETH 债务，解锁 TMEME 抵押品</p>
+      <p class="desc">偿还 ETH 债务，解锁 HOOK 抵押品</p>
       <div class="field"><label>偿还 ETH 数量</label><input id="repayAmt" type="text" placeholder="0.01"><button class="max-btn" onclick="fillMaxRepay()">MAX</button></div>
       <button class="btn repay" onclick="doRepay()">偿还</button>
     </div>
@@ -105,12 +105,12 @@ header h1{font-size:24px;color:#f1f5f9}
 <script>
 const CHAIN_ID = 11155111;
 const CHAIN_HEX = '0xaa36a7';
-const RPC = 'https://rpc.sepolia.org';
+const RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
 const EXPLORER = 'https://sepolia.etherscan.io';
 const CONTRACTS = {
-  token:  '0x127dD5234238a0823848b0730FBdD9Bcc48a05Eb',
-  hook:   '0xeeae60d08057668fb0eeb2ea87b173376d0ea888',
-  router: '0xeC76d88CA1c339D0455306bcdfDcD11083B07F5d',
+  token:  '0x470337fC438791ec5Fd4aE77ecBBdCBD2f5Aea45',
+  hook:   '0x96f2110A5938812676aF2A31c6fE3026926F2888',
+  router: '0x5687b98E59387584fC05b70CE04441afBd79de4D',
 };
 const POOL_KEY = {
   currency0: '0x0000000000000000000000000000000000000000',
@@ -142,8 +142,8 @@ const HOOK_ABI = [
   'function collateralBalance(address) view returns (uint256)',
   'function borrowedETH(address) view returns (uint256)',
   'function collateralSupply() view returns (uint256)',
-  'function estimateBuy(uint256 ethIn) view returns (uint256 tokensOut, uint256 platformFee, uint256 floorBoostFee)',
-  'function estimateSell(uint256 tokenAmount) view returns (uint256 ethOut, uint256 platformFee, uint256 floorBoostFee)',
+  'function estimateBuy(uint256 ethIn) view returns (uint256 tokensOut, uint256 swapFee)',
+  'function estimateSell(uint256 tokenAmount) view returns (uint256 ethOut, uint256 swapFee)',
   'function estimateBorrowMore(address user) view returns (uint256 additionalEth, uint256 fee)',
   'function borrow(uint256 amount)',
   'function borrowMore()',
@@ -183,7 +183,7 @@ async function connectWallet() {
           await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
             chainId:CHAIN_HEX,chainName:'Sepolia Testnet',
             nativeCurrency:{name:'SepoliaETH',symbol:'SepoliaETH',decimals:18},
-            rpcUrls:['https://rpc.sepolia.org'],
+            rpcUrls:['https://ethereum-sepolia-rpc.publicnode.com'],
             blockExplorerUrls:[EXPLORER]
           }]});
         } else throw e;
@@ -219,7 +219,7 @@ async function refreshData() {
     ]);
     document.getElementById('account').textContent = account.slice(0,6)+'...'+account.slice(-4);
     document.getElementById('ethBal').textContent = fmt(ethBal)+' ETH';
-    document.getElementById('tokenBal').textContent = fmt(tokenBal)+' TMEME';
+    document.getElementById('tokenBal').textContent = fmt(tokenBal)+' HOOK';
     document.getElementById('curPrice').textContent = fmt(price)+' ETH';
     document.getElementById('floorPx').textContent = fmt(floor)+' ETH';
     document.getElementById('totalSupply').textContent = fmt(supply);
@@ -228,7 +228,7 @@ async function refreshData() {
       hookR.collateralBalance(account),
       hookR.borrowedETH(account),
     ]);
-    document.getElementById('colBal').textContent = fmt(colBal)+' TMEME';
+    document.getElementById('colBal').textContent = fmt(colBal)+' HOOK';
     document.getElementById('debtBal').textContent = fmt(debt);
     // store for max buttons
     window._tokenBal = tokenBal;
@@ -254,7 +254,7 @@ document.getElementById('buyAmt').addEventListener('input', async function(){
     const v = this.value.trim();
     if (!v || isNaN(v) || parseFloat(v)<=0){el.textContent='';return;}
     const r = await hookR.estimateBuy(pe(v));
-    el.textContent = `≈ ${fmt(r.tokensOut)} TMEME (手续费: ${fmt(r.platformFee)} + ${fmt(r.floorBoostFee)} ETH)`;
+    el.textContent = `≈ ${fmt(r.tokensOut)} HOOK (手续费: ${fmt(r.swapFee)} ETH)`;
   } catch(e){el.textContent='无法估算';}
 });
 document.getElementById('sellAmt').addEventListener('input', async function(){
@@ -282,7 +282,7 @@ async function doBuy() {
     const v = document.getElementById('buyAmt').value.trim();
     if (!v || parseFloat(v)<=0) { alert('请输入 ETH 数量'); return; }
     const ethAmt = pe(v);
-    log(`正在使用 ${v} ETH 买入 TMEME...`);
+    log(`正在使用 ${v} ETH 买入 HOOK...`);
     const tx = await routerC.buy(POOL_KEY_TUPLE, 0, {value: ethAmt});
     log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
     await tx.wait();
@@ -294,10 +294,10 @@ async function doBuy() {
 async function doSell() {
   try {
     const v = document.getElementById('sellAmt').value.trim();
-    if (!v || parseFloat(v)<=0) { alert('请输入 TMEME 数量'); return; }
+    if (!v || parseFloat(v)<=0) { alert('请输入 HOOK 数量'); return; }
     const amt = pe(v);
     await ensureApproval(CONTRACTS.router, amt);
-    log(`正在卖出 ${v} TMEME...`);
+    log(`正在卖出 ${v} HOOK...`);
     const tx = await routerC.sell(POOL_KEY_TUPLE, amt, 0);
     log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
     await tx.wait();
@@ -309,10 +309,10 @@ async function doSell() {
 async function doBorrow() {
   try {
     const v = document.getElementById('borrowAmt').value.trim();
-    if (!v || parseFloat(v)<=0) { alert('请输入 TMEME 数量'); return; }
+    if (!v || parseFloat(v)<=0) { alert('请输入 HOOK 数量'); return; }
     const amt = pe(v);
     await ensureApproval(CONTRACTS.hook, amt);
-    log(`正在使用 ${v} TMEME 抵押借贷...`);
+    log(`正在使用 ${v} HOOK 抵押借贷...`);
     const tx = await hookC.borrow(amt);
     log(`交易已发送: <a href="${EXPLORER}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,14)}...</a>`);
     await tx.wait();
