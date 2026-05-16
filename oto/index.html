@@ -161,6 +161,20 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
+/* Percent buttons */
+.pct-row{display:flex;gap:6px;margin-bottom:12px}
+.pct-btn{flex:1;padding:8px 0;text-align:center;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg2);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.pct-btn:hover{border-color:rgba(255,255,255,.15);color:var(--text)}
+.pct-btn:active{transform:scale(.96)}
+.pct-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.balance-line{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text3);margin-bottom:8px}
+.balance-val{font-family:var(--mono);color:var(--text2);font-weight:500}
+.copy-wrap{display:flex;align-items:center;gap:6px;text-align:right;max-width:60%}
+.copy-wrap .info-val{max-width:none;flex:1}
+.btn-copy{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 5px;cursor:pointer;color:var(--text3);transition:all .2s;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1}
+.btn-copy:hover{border-color:var(--accent);color:var(--accent)}
+.btn-copy.copied{border-color:var(--green);color:var(--green)}
+
 /* Responsive */
 @media(max-width:520px){
   .app-wrapper{padding:0 16px}
@@ -241,8 +255,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
         <div class="card-icon green"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
         <h3>已绑定</h3>
       </div>
-      <div class="info-row"><span class="info-label">上级邀请人</span><span class="info-val mono" id="b-parent">-</span></div>
-      <div class="info-row"><span class="info-label">初始邀请人</span><span class="info-val mono" id="b-initial">-</span></div>
+      <div class="info-row"><span class="info-label">上级邀请人</span><div class="copy-wrap"><span class="info-val mono" id="b-parent">-</span><button class="btn-copy" onclick="copyAddr('b-parent')" title="复制地址"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
+      <div class="info-row"><span class="info-label">初始邀请人</span><div class="copy-wrap"><span class="info-val mono" id="b-initial">-</span><button class="btn-copy" onclick="copyAddr('b-initial')" title="复制地址"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
       <div class="info-row"><span class="info-label">我的邀请人数</span><span class="info-val" id="b-count">-</span></div>
       <div class="info-row"><span class="info-label">我的 Vault</span><span class="info-val mono" id="b-vault">-</span></div>
     </div>
@@ -257,7 +271,17 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
       </div>
       <div class="field">
         <label class="field-label">存入金额 (ETH)</label>
+        <div class="balance-line">
+          <span>可用余额</span>
+          <span class="balance-val" id="depositBalance">--</span>
+        </div>
         <input class="field-input" type="text" id="depositAmt" placeholder="0.0" inputmode="decimal" autocomplete="off">
+      </div>
+      <div class="pct-row">
+        <button class="pct-btn" onclick="setDepositPct(25)">25%</button>
+        <button class="pct-btn" onclick="setDepositPct(50)">50%</button>
+        <button class="pct-btn" onclick="setDepositPct(75)">75%</button>
+        <button class="pct-btn" onclick="setDepositPct(100)">Max</button>
       </div>
       <button class="btn btn-green" id="depositBtn" onclick="doDeposit()">存入</button>
       <div class="card-desc">10% 自动分配给上级邀请人，剩余部分用于购买 OTO 代币并执行借贷策略。</div>
@@ -319,7 +343,17 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
       </div>
       <div class="field">
         <label class="field-label">偿还 ETH 金额（可选，填 0 或留空）</label>
+        <div class="balance-line">
+          <span>当前债务</span>
+          <span class="balance-val" id="redeemDebtDisplay">--</span>
+        </div>
         <input class="field-input" type="text" id="redeemAmt" placeholder="0.0" inputmode="decimal" autocomplete="off">
+      </div>
+      <div class="pct-row">
+        <button class="pct-btn" onclick="setRedeemPct(25)">25%</button>
+        <button class="pct-btn" onclick="setRedeemPct(50)">50%</button>
+        <button class="pct-btn" onclick="setRedeemPct(75)">75%</button>
+        <button class="pct-btn" onclick="setRedeemPct(100)">Max</button>
       </div>
       <button class="btn btn-red" id="redeemBtn" onclick="doRedeem()">赎回</button>
       <div class="card-desc">可附带 ETH 偿还债务，赎回你的抵押品。</div>
@@ -340,8 +374,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
             <div class="dash-item"><div class="dash-val" id="d-count">-</div><div class="dash-label">邀请人数</div></div>
             <div class="dash-item"><div class="dash-val" id="d-bound">-</div><div class="dash-label">绑定状态</div></div>
           </div>
-          <div class="info-row"><span class="info-label">上级邀请人</span><span class="info-val mono" id="d-parent">-</span></div>
-          <div class="info-row"><span class="info-label">初始邀请人</span><span class="info-val mono" id="d-initial">-</span></div>
+          <div class="info-row"><span class="info-label">上级邀请人</span><div class="copy-wrap"><span class="info-val mono" id="d-parent">-</span><button class="btn-copy" onclick="copyAddr('d-parent')" title="复制地址"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
+          <div class="info-row"><span class="info-label">初始邀请人</span><div class="copy-wrap"><span class="info-val mono" id="d-initial">-</span><button class="btn-copy" onclick="copyAddr('d-initial')" title="复制地址"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div>
           <div class="info-row"><span class="info-label">Vault 合约</span><span class="info-val mono" id="d-vault">-</span></div>
         </div>
       </div>
@@ -405,6 +439,8 @@ const HOOK_ABI = [
 
 let provider=null, signer=null, userAddr=null;
 let inviteContract=null, vaultContract=null, vaultAddr=null;
+let userEthBalance=0n; // 用户 ETH 余额（wei）
+let currentDebt=0n; // 当前债务（wei）
 
 /* ---- Toast ---- */
 function toast(msg, type='info') {
@@ -422,12 +458,111 @@ function shortAddr(a){
   return a.slice(0,6)+'...'+a.slice(-4);
 }
 
+/* ---- Copy address ---- */
+function copyAddr(elemId){
+  const el=document.getElementById(elemId);
+  const fullAddr=el.title||el.textContent;
+  if(!fullAddr||fullAddr==='\u2014'){toast('暂无可复制的地址','error');return}
+  navigator.clipboard.writeText(fullAddr).then(()=>{
+    toast('地址已复制','success');
+    const btn=el.parentElement.querySelector('.btn-copy');
+    if(btn){btn.classList.add('copied');setTimeout(()=>btn.classList.remove('copied'),1500)}
+  }).catch(()=>{
+    // fallback
+    const ta=document.createElement('textarea');
+    ta.value=fullAddr;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('地址已复制','success');
+  });
+}
+
 /* ---- Tabs ---- */
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
   document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+name));
   if(name==='dashboard' && signer) refreshDashboard();
-  if(name==='vault' && signer){ updateRedeemView(); updateClaimEstimate(); }
+  if(name==='vault' && signer){ updateRedeemView(); updateClaimEstimate(); refreshDepositBalance(); refreshRedeemDebt(); }
+}
+
+/* ---- ETH Balance for deposit ---- */
+async function refreshDepositBalance(){
+  if(!provider||!userAddr) return;
+  try{
+    userEthBalance=await provider.getBalance(userAddr);
+    document.getElementById('depositBalance').textContent=ethers.formatEther(userEthBalance)+' ETH';
+  }catch(e){
+    document.getElementById('depositBalance').textContent='获取失败';
+  }
+}
+
+/* ---- Debt for redeem ---- */
+async function refreshRedeemDebt(){
+  if(!vaultContract||!vaultAddr||vaultAddr===ZERO) return;
+  try{
+    const vc=new ethers.Contract(vaultAddr,VAULT_ABI,provider);
+    currentDebt=await vc.getDebt();
+    // 显示完整 18 位小数（去掉末尾零）
+    document.getElementById('redeemDebtDisplay').textContent=formatFullDecimals(currentDebt)+' ETH';
+  }catch(e){
+    document.getElementById('redeemDebtDisplay').textContent='获取失败';
+  }
+}
+
+/* ---- 格式化完整小数，保留所有有效位，去掉末尾多余的零 ---- */
+function formatFullDecimals(wei){
+  const s=ethers.formatEther(wei);
+  // ethers.formatEther 已经给出完整 18 位，去掉末尾零但保留至少一位小数
+  const parts=s.split('.');
+  if(parts.length===1) return s+'.0';
+  let dec=parts[1].replace(/0+$/,'');
+  if(dec==='') dec='0';
+  return parts[0]+'.'+dec;
+}
+
+/* ---- Deposit percent buttons ---- */
+function setDepositPct(pct){
+  // 清除所有 active 状态
+  document.querySelectorAll('#sec-vault .card:first-child .pct-btn').forEach(b=>b.classList.remove('active'));
+  // 设置当前按钮 active
+  const btns=document.querySelectorAll('#sec-vault .card:first-child .pct-btn');
+  const idx={25:0,50:1,75:2,100:3}[pct];
+  if(idx!==undefined && btns[idx]) btns[idx].classList.add('active');
+
+  if(userEthBalance===0n){
+    document.getElementById('depositAmt').value='0';
+    return;
+  }
+  if(pct===100){
+    // Max: 减去 0.001 ETH 留手续费
+    const reserve=ethers.parseEther('0.001');
+    let val=userEthBalance>reserve ? userEthBalance-reserve : 0n;
+    document.getElementById('depositAmt').value=val>0n ? ethers.formatEther(val) : '0';
+  }else{
+    const val=userEthBalance*BigInt(pct)/100n;
+    document.getElementById('depositAmt').value=ethers.formatEther(val);
+  }
+}
+
+/* ---- Redeem percent buttons ---- */
+function setRedeemPct(pct){
+  // 清除所有 active 状态
+  document.querySelectorAll('#redeem-active .pct-btn').forEach(b=>b.classList.remove('active'));
+  const btns=document.querySelectorAll('#redeem-active .pct-btn');
+  const idx={25:0,50:1,75:2,100:3}[pct];
+  if(idx!==undefined && btns[idx]) btns[idx].classList.add('active');
+
+  if(currentDebt===0n){
+    document.getElementById('redeemAmt').value='0';
+    return;
+  }
+  if(pct===100){
+    // Max: 显示完整 18 位小数
+    document.getElementById('redeemAmt').value=formatFullDecimals(currentDebt);
+  }else{
+    const val=currentDebt*BigInt(pct)/100n;
+    document.getElementById('redeemAmt').value=formatFullDecimals(val);
+  }
 }
 
 /* ---- Wallet ---- */
@@ -466,6 +601,8 @@ async function connectWallet(){
     updateInviteView(bound);
     updateRedeemView();
     updateClaimEstimate();
+    refreshDepositBalance();
+    refreshRedeemDebt();
     toast('钱包连接成功','success');
     refreshDashboard();
   }catch(e){
@@ -583,6 +720,8 @@ async function doBind(){
     vaultContract=new ethers.Contract(vaultAddr,VAULT_ABI,signer);
     updateInviteView(true);
     refreshDashboard();
+    refreshDepositBalance();
+    refreshRedeemDebt();
   }catch(e){toast('绑定失败: '+(e.shortMessage||e.reason||e.message),'error')}
   finally{setLoading('bindBtn',false,'确认绑定')}
 }
@@ -600,6 +739,8 @@ async function doDeposit(){
     await tx.wait();
     toast('存入成功','success');
     document.getElementById('depositAmt').value='';
+    refreshDepositBalance();
+    refreshRedeemDebt();
   }catch(e){toast('存入失败: '+(e.shortMessage||e.reason||e.message),'error')}
   finally{setLoading('depositBtn',false,'存入')}
 }
@@ -631,6 +772,8 @@ async function doRedeem(){
     await tx.wait();
     toast('赎回成功','success');
     document.getElementById('redeemAmt').value='';
+    refreshDepositBalance();
+    refreshRedeemDebt();
   }catch(e){toast('赎回失败: '+(e.shortMessage||e.reason||e.message),'error')}
   finally{setLoading('redeemBtn',false,'赎回')}
 }
