@@ -111,6 +111,13 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .info-val.status-on{color:var(--green)}
 .info-val.status-off{color:var(--red)}
 
+/* Coming Soon */
+.coming-soon{text-align:center;padding:28px 16px 12px}
+.coming-icon{color:var(--text3);margin-bottom:14px;opacity:.5}
+.coming-title{font-size:22px;font-weight:800;letter-spacing:.06em;background:linear-gradient(135deg,var(--text3),var(--text2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.coming-desc{font-size:13px;color:var(--text3);line-height:1.6}
+.info-val.status-off{color:var(--red)}
+
 /* Dashboard summary cards */
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .dash-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}
@@ -192,7 +199,17 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
   <!-- Section: 邀请绑定 -->
   <div class="section active" id="sec-invite">
-    <div class="card">
+    <!-- 未连接钱包时的占位 -->
+    <div class="card" id="invite-placeholder">
+      <div class="card-head">
+        <div class="card-icon blue"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+        <h3>邀请绑定</h3>
+      </div>
+      <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px">请先连接钱包</div>
+    </div>
+
+    <!-- 未绑定：显示绑定表单 -->
+    <div class="card" id="invite-unbind" style="display:none">
       <div class="card-head">
         <div class="card-icon blue"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
         <h3>绑定邀请人</h3>
@@ -203,6 +220,18 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
       </div>
       <button class="btn btn-primary" id="bindBtn" onclick="doBind()">确认绑定</button>
       <div class="card-desc">绑定邀请关系后将自动创建你的专属 Vault 合约，每个地址仅可绑定一次，操作不可逆。</div>
+    </div>
+
+    <!-- 已绑定：显示邀请关系 -->
+    <div class="card" id="invite-bound" style="display:none">
+      <div class="card-head">
+        <div class="card-icon green"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <h3>已绑定</h3>
+      </div>
+      <div class="info-row"><span class="info-label">上级邀请人</span><span class="info-val mono" id="b-parent">-</span></div>
+      <div class="info-row"><span class="info-label">初始邀请人</span><span class="info-val mono" id="b-initial">-</span></div>
+      <div class="info-row"><span class="info-label">我的邀请人数</span><span class="info-val" id="b-count">-</span></div>
+      <div class="info-row"><span class="info-label">我的 Vault</span><span class="info-val mono" id="b-vault">-</span></div>
     </div>
   </div>
 
@@ -230,7 +259,19 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
       <div class="card-desc">领取额外借贷收益，其中 20% 自动分配给初始邀请人，80% 归你所有。</div>
     </div>
 
-    <div class="card">
+    <div class="card" id="redeem-coming">
+      <div class="card-head">
+        <div class="card-icon red"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>赎回</h3>
+      </div>
+      <div class="coming-soon">
+        <div class="coming-icon"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="coming-title">Coming Soon</div>
+        <div class="coming-desc">赎回功能暂未开启，请耐心等待管理员开启</div>
+      </div>
+    </div>
+
+    <div class="card" id="redeem-active" style="display:none">
       <div class="card-head">
         <div class="card-icon red"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
         <h3>赎回</h3>
@@ -240,7 +281,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
         <input class="field-input" type="text" id="redeemAmt" placeholder="0.0" inputmode="decimal" autocomplete="off">
       </div>
       <button class="btn btn-red" id="redeemBtn" onclick="doRedeem()">赎回</button>
-      <div class="card-desc">需管理员开启赎回功能后方可操作。可附带 ETH 偿还债务，赎回你的抵押品。</div>
+      <div class="card-desc">可附带 ETH 偿还债务，赎回你的抵押品。</div>
     </div>
   </div>
 
@@ -337,6 +378,7 @@ function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
   document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+name));
   if(name==='dashboard' && signer) refreshDashboard();
+  if(name==='vault' && signer) updateRedeemView();
 }
 
 /* ---- Wallet ---- */
@@ -372,6 +414,8 @@ async function connectWallet(){
       vaultAddr=await inviteContract.userVault(userAddr);
       if(vaultAddr!==ZERO) vaultContract=new ethers.Contract(vaultAddr,VAULT_ABI,signer);
     }
+    updateInviteView(bound);
+    updateRedeemView();
     toast('钱包连接成功','success');
     refreshDashboard();
   }catch(e){
@@ -381,6 +425,38 @@ async function connectWallet(){
 }
 
 function requireWallet(){if(!signer){toast('请先连接钱包','error');return false}return true}
+
+/* ---- Invite view toggle ---- */
+async function updateInviteView(bound){
+  document.getElementById('invite-placeholder').style.display='none';
+  if(bound){
+    document.getElementById('invite-unbind').style.display='none';
+    document.getElementById('invite-bound').style.display='block';
+    try{
+      const info=await inviteContract.getInfo(userAddr);
+      document.getElementById('b-parent').textContent=shortAddr(info._parent);
+      document.getElementById('b-parent').title=info._parent;
+      document.getElementById('b-initial').textContent=shortAddr(info._initialInviter);
+      document.getElementById('b-initial').title=info._initialInviter;
+      document.getElementById('b-count').textContent=info._inviteCount.toString();
+      document.getElementById('b-vault').textContent=shortAddr(info._vault);
+      document.getElementById('b-vault').title=info._vault;
+    }catch(e){}
+  }else{
+    document.getElementById('invite-unbind').style.display='block';
+    document.getElementById('invite-bound').style.display='none';
+  }
+}
+
+/* ---- Redeem view toggle ---- */
+async function updateRedeemView(){
+  if(!inviteContract)return;
+  try{
+    const enabled=await inviteContract.redeemEnabled();
+    document.getElementById('redeem-coming').style.display=enabled?'none':'block';
+    document.getElementById('redeem-active').style.display=enabled?'block':'none';
+  }catch(e){}
+}
 
 function setLoading(id,on,origText){
   const b=document.getElementById(id);
@@ -403,6 +479,7 @@ async function doBind(){
     badge.textContent='已绑定';badge.className='acct-badge badge-bound';
     vaultAddr=await inviteContract.userVault(userAddr);
     vaultContract=new ethers.Contract(vaultAddr,VAULT_ABI,signer);
+    updateInviteView(true);
     refreshDashboard();
   }catch(e){toast('绑定失败: '+(e.shortMessage||e.reason||e.message),'error')}
   finally{setLoading('bindBtn',false,'确认绑定')}
