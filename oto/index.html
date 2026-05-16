@@ -415,12 +415,6 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
               <div class="est-val" id="sell-est-eth" style="color:var(--green)">-</div>
               <div class="est-unit">ETH</div>
             </div>
-            <div class="est-divider"></div>
-            <div class="est-item">
-              <div class="est-label">平台手续费</div>
-              <div class="est-val" id="sell-est-fee">-</div>
-              <div class="est-unit">ETH</div>
-            </div>
           </div>
         </div>
       </div>
@@ -1016,7 +1010,6 @@ async function _doSellEstimate(){
     document.getElementById('sellEstPlaceholder').style.display='none';
     document.getElementById('sellEstLoaded').style.display='block';
     document.getElementById('sell-est-eth').textContent=parseFloat(ethers.formatEther(result.ethOut)).toFixed(8);
-    document.getElementById('sell-est-fee').textContent=parseFloat(ethers.formatEther(result.platformFee)).toFixed(8);
   }catch(e){
     document.getElementById('sellEstPlaceholder').textContent='估算失败';
     document.getElementById('sellEstPlaceholder').style.display='block';
