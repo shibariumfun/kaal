@@ -175,6 +175,16 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .btn-copy:hover{border-color:var(--accent);color:var(--accent)}
 .btn-copy.copied{border-color:var(--green);color:var(--green)}
 
+/* Price bar */
+.price-bar{display:flex;gap:12px;margin-bottom:16px}
+.price-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;text-align:center}
+.price-card .price-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.price-card .price-val{font-size:18px;font-weight:800;font-family:var(--mono);letter-spacing:-.02em}
+.price-card .price-unit{font-size:11px;color:var(--text3);font-weight:500;margin-top:2px}
+.price-card.current .price-val{color:var(--accent)}
+.price-card.floor .price-val{color:var(--green)}
+.price-loading{animation:pulse 1.5s ease-in-out infinite}
+
 /* Responsive */
 @media(max-width:520px){
   .app-wrapper{padding:0 16px}
@@ -217,10 +227,25 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
     <span class="acct-badge" id="bindBadge">-</span>
   </div>
 
+  <!-- Price Bar -->
+  <div class="price-bar" id="priceBar">
+    <div class="price-card current">
+      <div class="price-label">当前价格</div>
+      <div class="price-val price-loading" id="currentPrice">--</div>
+      <div class="price-unit">ETH</div>
+    </div>
+    <div class="price-card floor">
+      <div class="price-label">地板价格</div>
+      <div class="price-val price-loading" id="floorPrice">--</div>
+      <div class="price-unit">ETH</div>
+    </div>
+  </div>
+
   <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" data-tab="invite" onclick="switchTab('invite')">邀请绑定</div>
-    <div class="tab" data-tab="vault" onclick="switchTab('vault')">资金操作</div>
+    <div class="tab" data-tab="vault" onclick="switchTab('vault')">购买</div>
+    <div class="tab" data-tab="sell" onclick="switchTab('sell')">出售</div>
     <div class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">我的仪表盘</div>
   </div>
 
@@ -360,6 +385,50 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
     </div>
   </div>
 
+  <!-- Section: 出售 OTO -->
+  <div class="section" id="sec-sell">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon red"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+        <h3>出售 OTO</h3>
+      </div>
+      <div class="field">
+        <label class="field-label">出售数量 (OTO)</label>
+        <div class="balance-line">
+          <span>OTO 余额</span>
+          <span class="balance-val" id="sellOtoBalance">--</span>
+        </div>
+        <input class="field-input" type="text" id="sellAmt" placeholder="0.0" inputmode="decimal" autocomplete="off" oninput="updateSellEstimate()">
+      </div>
+      <div class="pct-row">
+        <button class="pct-btn" onclick="setSellPct(25)">25%</button>
+        <button class="pct-btn" onclick="setSellPct(50)">50%</button>
+        <button class="pct-btn" onclick="setSellPct(75)">75%</button>
+        <button class="pct-btn" onclick="setSellPct(100)">Max</button>
+      </div>
+      <div class="claim-estimate" id="sellEstPanel">
+        <div class="est-placeholder" id="sellEstPlaceholder">输入数量后自动估算</div>
+        <div id="sellEstLoaded" style="display:none">
+          <div class="est-grid">
+            <div class="est-item">
+              <div class="est-label">预估获得</div>
+              <div class="est-val" id="sell-est-eth" style="color:var(--green)">-</div>
+              <div class="est-unit">ETH</div>
+            </div>
+            <div class="est-divider"></div>
+            <div class="est-item">
+              <div class="est-label">平台手续费</div>
+              <div class="est-val" id="sell-est-fee">-</div>
+              <div class="est-unit">ETH</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-red" id="sellBtn" onclick="doSell()">出售</button>
+      <div class="card-desc">出售 OTO 代币换回 ETH。需要先授权 SwapRouter 合约，交易会自动处理授权流程。</div>
+    </div>
+  </div>
+
   <!-- Section: 仪表盘 -->
   <div class="section" id="sec-dashboard">
     <div class="card">
@@ -414,6 +483,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 <script>
 const INVITE_ADDR = "0xF180B0620dFa27DF6F100A5C3cE734e42C06E45F";
 const HOOK_ADDR = "0xd44AB94E80ced751D9A23386C86B835A5239A888";
+const OTO_TOKEN_ADDR = "0xb5123119FaC07c1325A126cB3BEA9D145907730E";
+const SWAP_ROUTER_ADDR = "0xf1931d2BdCd380F37952A310e8a790DeBF36cf9c";
 const ZERO = "0x0000000000000000000000000000000000000000";
 const INVITE_ABI = [
   "function bind(address inviter) external",
@@ -434,13 +505,26 @@ const VAULT_ABI = [
 const HOOK_ABI = [
   "function estimateBorrowMore(bytes32 poolId, address user) external view returns (uint256 additionalEth, uint256 fee)",
   "function estimateBuy(bytes32 poolId, uint256 ethIn) external view returns (uint256 tokensOut, uint256 platformFee, uint256 floorBoostFee)",
-  "function getEffectivePrice(bytes32 poolId) external view returns (uint256)"
+  "function estimateSell(bytes32 poolId, uint256 tokenAmount) external view returns (uint256 ethOut, uint256 platformFee, uint256 floorBoostFee)",
+  "function getEffectivePrice(bytes32 poolId) external view returns (uint256)",
+  "function tokenStates(bytes32) external view returns (address token, uint256 totalFeeBps, uint256 floorPrice, uint256 realETH, uint256 virtualETH, uint256 totalBorrowedETH, uint256 collateralSupply, uint256 floorBoostPool, uint256 totalReserveAccumulated, uint256 allTimeHighPrice, bool initialized)"
+];
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)"
+];
+const SWAP_ROUTER_ABI = [
+  "function sell(tuple(address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks) key, uint256 tokenAmount, uint256 minEthOut) external"
 ];
 
 let provider=null, signer=null, userAddr=null;
 let inviteContract=null, vaultContract=null, vaultAddr=null;
 let userEthBalance=0n; // 用户 ETH 余额（wei）
 let currentDebt=0n; // 当前债务（wei）
+let userOtoBalance=0n; // 用户 OTO 余额（wei）
+let cachedPoolId=null; // 缓存 poolId
+let priceRefreshTimer=null; // 价格刷新定时器
 
 /* ---- Toast ---- */
 function toast(msg, type='info') {
@@ -483,6 +567,7 @@ function switchTab(name){
   document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+name));
   if(name==='dashboard' && signer) refreshDashboard();
   if(name==='vault' && signer){ updateRedeemView(); updateClaimEstimate(); refreshDepositBalance(); refreshRedeemDebt(); }
+  if(name==='sell' && signer){ refreshSellBalance(); }
 }
 
 /* ---- ETH Balance for deposit ---- */
@@ -603,6 +688,11 @@ async function connectWallet(){
     updateClaimEstimate();
     refreshDepositBalance();
     refreshRedeemDebt();
+    refreshSellBalance();
+    refreshPrices();
+    // 每 30 秒自动刷新价格
+    if(priceRefreshTimer) clearInterval(priceRefreshTimer);
+    priceRefreshTimer=setInterval(refreshPrices,30000);
     toast('钱包连接成功','success');
     refreshDashboard();
   }catch(e){
@@ -813,6 +903,184 @@ async function refreshDashboard(){
       document.getElementById('vaultLoaded').style.display='none';
     }
   }catch(e){toast('加载数据失败: '+(e.shortMessage||e.message),'error')}
+}
+
+/* ---- Price Display ---- */
+async function refreshPrices(){
+  if(!provider) return;
+  try{
+    const hookContract=new ethers.Contract(HOOK_ADDR,HOOK_ABI,provider);
+    // 获取 poolId
+    if(!cachedPoolId){
+      const ic=new ethers.Contract(INVITE_ADDR,INVITE_ABI,provider);
+      cachedPoolId=await ic.POOL_ID();
+    }
+    const [effectivePrice, ts]=await Promise.all([
+      hookContract.getEffectivePrice(cachedPoolId),
+      hookContract.tokenStates(cachedPoolId)
+    ]);
+    const cpEl=document.getElementById('currentPrice');
+    const fpEl=document.getElementById('floorPrice');
+    cpEl.textContent=formatPriceDisplay(effectivePrice);
+    cpEl.classList.remove('price-loading');
+    fpEl.textContent=formatPriceDisplay(ts.floorPrice);
+    fpEl.classList.remove('price-loading');
+  }catch(e){
+    document.getElementById('currentPrice').textContent='--';
+    document.getElementById('floorPrice').textContent='--';
+  }
+}
+
+function formatPriceDisplay(wei){
+  if(wei===0n) return '0';
+  const s=ethers.formatEther(wei);
+  const num=parseFloat(s);
+  if(num>=0.01) return num.toFixed(6);
+  if(num>=0.0001) return num.toFixed(8);
+  return num.toFixed(12);
+}
+
+/* ---- Sell: OTO Balance ---- */
+async function refreshSellBalance(){
+  if(!provider||!userAddr) return;
+  try{
+    const otoContract=new ethers.Contract(OTO_TOKEN_ADDR,ERC20_ABI,provider);
+    userOtoBalance=await otoContract.balanceOf(userAddr);
+    document.getElementById('sellOtoBalance').textContent=formatFullDecimals18(userOtoBalance)+' OTO';
+  }catch(e){
+    document.getElementById('sellOtoBalance').textContent='获取失败';
+  }
+}
+
+/* ---- 格式化 OTO 余额（18 位小数，去掉末尾零） ---- */
+function formatFullDecimals18(wei){
+  const s=ethers.formatUnits(wei,18);
+  const parts=s.split('.');
+  if(parts.length===1) return s+'.0';
+  let dec=parts[1].replace(/0+$/,'');
+  if(dec==='') dec='0';
+  return parts[0]+'.'+dec;
+}
+
+/* ---- Sell percent buttons ---- */
+function setSellPct(pct){
+  document.querySelectorAll('#sec-sell .pct-btn').forEach(b=>b.classList.remove('active'));
+  const btns=document.querySelectorAll('#sec-sell .pct-btn');
+  const idx={25:0,50:1,75:2,100:3}[pct];
+  if(idx!==undefined && btns[idx]) btns[idx].classList.add('active');
+
+  if(userOtoBalance===0n){
+    document.getElementById('sellAmt').value='0';
+    updateSellEstimate();
+    return;
+  }
+  if(pct===100){
+    // Max: 显示完整 18 位小数（不去除末尾零）
+    document.getElementById('sellAmt').value=ethers.formatUnits(userOtoBalance,18);
+  }else{
+    const val=userOtoBalance*BigInt(pct)/100n;
+    document.getElementById('sellAmt').value=formatFullDecimals18(val);
+  }
+  updateSellEstimate();
+}
+
+/* ---- Sell estimate ---- */
+let sellEstimateTimer=null;
+async function updateSellEstimate(){
+  if(sellEstimateTimer) clearTimeout(sellEstimateTimer);
+  sellEstimateTimer=setTimeout(_doSellEstimate,300);
+}
+
+async function _doSellEstimate(){
+  const amtStr=document.getElementById('sellAmt').value.trim();
+  if(!amtStr||isNaN(amtStr)||Number(amtStr)<=0){
+    document.getElementById('sellEstPlaceholder').style.display='block';
+    document.getElementById('sellEstLoaded').style.display='none';
+    return;
+  }
+  if(!provider){
+    document.getElementById('sellEstPlaceholder').textContent='请先连接钱包';
+    return;
+  }
+  try{
+    const tokenAmount=ethers.parseUnits(amtStr,18);
+    if(tokenAmount===0n) return;
+
+    const hookContract=new ethers.Contract(HOOK_ADDR,HOOK_ABI,provider);
+    if(!cachedPoolId){
+      const ic=new ethers.Contract(INVITE_ADDR,INVITE_ABI,provider);
+      cachedPoolId=await ic.POOL_ID();
+    }
+    const result=await hookContract.estimateSell(cachedPoolId,tokenAmount);
+
+    document.getElementById('sellEstPlaceholder').style.display='none';
+    document.getElementById('sellEstLoaded').style.display='block';
+    document.getElementById('sell-est-eth').textContent=parseFloat(ethers.formatEther(result.ethOut)).toFixed(8);
+    document.getElementById('sell-est-fee').textContent=parseFloat(ethers.formatEther(result.platformFee)).toFixed(8);
+  }catch(e){
+    document.getElementById('sellEstPlaceholder').textContent='估算失败';
+    document.getElementById('sellEstPlaceholder').style.display='block';
+    document.getElementById('sellEstLoaded').style.display='none';
+  }
+}
+
+/* ---- Sell OTO ---- */
+async function doSell(){
+  if(!requireWallet()) return;
+  const amtStr=document.getElementById('sellAmt').value.trim();
+  if(!amtStr||isNaN(amtStr)||Number(amtStr)<=0){toast('请输入有效的出售数量','error');return}
+
+  const tokenAmount=ethers.parseUnits(amtStr,18);
+  if(tokenAmount===0n){toast('数量不能为零','error');return}
+  if(tokenAmount>userOtoBalance){toast('OTO 余额不足','error');return}
+
+  try{
+    setLoading('sellBtn',true,'出售');
+    const otoContract=new ethers.Contract(OTO_TOKEN_ADDR,ERC20_ABI,signer);
+
+    // 检查授权额度
+    const currentAllowance=await otoContract.allowance(userAddr,SWAP_ROUTER_ADDR);
+    if(currentAllowance<tokenAmount){
+      toast('正在授权 SwapRouter 合约...','info');
+      const approveTx=await otoContract.approve(SWAP_ROUTER_ADDR,ethers.MaxUint256);
+      await approveTx.wait();
+      toast('授权成功','success');
+    }
+
+    // 构建 PoolKey
+    const poolKey={
+      currency0: ZERO,
+      currency1: OTO_TOKEN_ADDR,
+      fee: 3000,
+      tickSpacing: 60,
+      hooks: HOOK_ADDR
+    };
+
+    // 估算最小获得 ETH（滑点保护 2%）
+    let minEthOut=0n;
+    try{
+      const hookContract=new ethers.Contract(HOOK_ADDR,HOOK_ABI,provider);
+      if(!cachedPoolId){
+        const ic=new ethers.Contract(INVITE_ADDR,INVITE_ABI,provider);
+        cachedPoolId=await ic.POOL_ID();
+      }
+      const est=await hookContract.estimateSell(cachedPoolId,tokenAmount);
+      minEthOut=est.ethOut*98n/100n; // 2% 滑点
+    }catch(e){}
+
+    const swapRouter=new ethers.Contract(SWAP_ROUTER_ADDR,SWAP_ROUTER_ABI,signer);
+    const tx=await swapRouter.sell(poolKey,tokenAmount,minEthOut);
+    toast('交易已提交，等待链上确认...','info');
+    await tx.wait();
+    toast('出售成功','success');
+    document.getElementById('sellAmt').value='';
+    document.getElementById('sellEstPlaceholder').style.display='block';
+    document.getElementById('sellEstLoaded').style.display='none';
+    refreshSellBalance();
+    refreshDepositBalance();
+    refreshPrices();
+  }catch(e){toast('出售失败: '+(e.shortMessage||e.reason||e.message),'error')}
+  finally{setLoading('sellBtn',false,'出售')}
 }
 
 /* ---- Events ---- */
