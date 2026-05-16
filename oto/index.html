@@ -116,6 +116,19 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .coming-icon{color:var(--text3);margin-bottom:14px;opacity:.5}
 .coming-title{font-size:22px;font-weight:800;letter-spacing:.06em;background:linear-gradient(135deg,var(--text3),var(--text2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
 .coming-desc{font-size:13px;color:var(--text3);line-height:1.6}
+
+/* Claim Estimate */
+.claim-estimate{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;margin-bottom:16px}
+.est-placeholder{text-align:center;color:var(--text3);font-size:13px;padding:8px 0}
+.est-grid{display:flex;align-items:center;justify-content:center;gap:0}
+.est-item{flex:1;text-align:center}
+.est-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.est-val{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.est-unit{font-size:11px;color:var(--text3);margin-top:2px;font-weight:500}
+.est-divider{width:1px;height:48px;background:var(--border);flex-shrink:0;margin:0 4px}
+.est-status{margin-top:14px;text-align:center;font-size:13px;font-weight:600;padding:10px 14px;border-radius:var(--radius-xs)}
+.est-status.claimable{color:var(--green);background:var(--green-bg);border:1px solid rgba(52,211,153,.15)}
+.est-status.not-claimable{color:var(--text3);background:rgba(100,116,139,.06);border:1px solid var(--border)}
 .info-val.status-off{color:var(--red)}
 
 /* Dashboard summary cards */
@@ -255,6 +268,34 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
         <div class="card-icon purple"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5" rx="1"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
         <h3>领取收益</h3>
       </div>
+
+      <!-- 收益预估面板 -->
+      <div class="claim-estimate" id="claimEstimate">
+        <div class="est-placeholder" id="estPlaceholder">连接钱包后自动检测</div>
+        <div id="estLoaded" style="display:none">
+          <div class="est-grid">
+            <div class="est-item">
+              <div class="est-label">抵押品</div>
+              <div class="est-val" id="est-collateral">-</div>
+              <div class="est-unit">OTO</div>
+            </div>
+            <div class="est-divider"></div>
+            <div class="est-item">
+              <div class="est-label">当前债务</div>
+              <div class="est-val" id="est-debt">-</div>
+              <div class="est-unit">ETH</div>
+            </div>
+            <div class="est-divider"></div>
+            <div class="est-item">
+              <div class="est-label">预估收益</div>
+              <div class="est-val" id="est-reward" style="color:var(--green)">-</div>
+              <div class="est-unit">OTO</div>
+            </div>
+          </div>
+          <div class="est-status" id="estStatus"></div>
+        </div>
+      </div>
+
       <button class="btn btn-primary" id="claimBtn" onclick="doClaim()">领取收益</button>
       <div class="card-desc">领取额外借贷收益，其中 20% 自动分配给初始邀请人，80% 归你所有。</div>
     </div>
@@ -315,8 +356,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
         <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:13px" id="vaultEmpty">连接钱包后自动加载</div>
         <div id="vaultLoaded" style="display:none">
           <div class="dash-grid">
-            <div class="dash-item"><div class="dash-val" id="d-debt">-</div><div class="dash-label">借贷债务</div></div>
-            <div class="dash-item"><div class="dash-val" id="d-collateral">-</div><div class="dash-label">抵押品</div></div>
+            <div class="dash-item"><div class="dash-val" id="d-debt">-</div><div class="dash-label">借贷债务 (ETH)</div></div>
+            <div class="dash-item"><div class="dash-val" id="d-collateral">-</div><div class="dash-label">抵押品 (OTO)</div></div>
           </div>
           <div class="info-row"><span class="info-label">Vault 地址</span><span class="info-val mono" id="d-vaultAddr">-</span></div>
           <div class="info-row"><span class="info-label">赎回功能</span><span class="info-val" id="d-redeem">-</span></div>
@@ -338,20 +379,28 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 </div>
 <script>
 const INVITE_ADDR = "0xF180B0620dFa27DF6F100A5C3cE734e42C06E45F";
+const HOOK_ADDR = "0xd44AB94E80ced751D9A23386C86B835A5239A888";
 const ZERO = "0x0000000000000000000000000000000000000000";
 const INVITE_ABI = [
   "function bind(address inviter) external",
   "function getInfo(address user) external view returns (address _initialInviter, address _parent, uint256 _inviteCount, bool _isBound, address _vault)",
   "function redeemEnabled() external view returns (bool)",
   "function isBound(address) external view returns (bool)",
-  "function userVault(address) external view returns (address)"
+  "function userVault(address) external view returns (address)",
+  "function POOL_ID() external view returns (bytes32)"
 ];
 const VAULT_ABI = [
   "function deposit() external payable",
   "function claimMore() external",
   "function redeem() external payable",
   "function getDebt() external view returns (uint256)",
-  "function getCollateral() external view returns (uint256)"
+  "function getCollateral() external view returns (uint256)",
+  "function POOL_ID() external view returns (bytes32)"
+];
+const HOOK_ABI = [
+  "function estimateBorrowMore(bytes32 poolId, address user) external view returns (uint256 additionalEth, uint256 fee)",
+  "function estimateBuy(bytes32 poolId, uint256 ethIn) external view returns (uint256 tokensOut, uint256 platformFee, uint256 floorBoostFee)",
+  "function getEffectivePrice(bytes32 poolId) external view returns (uint256)"
 ];
 
 let provider=null, signer=null, userAddr=null;
@@ -378,7 +427,7 @@ function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
   document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+name));
   if(name==='dashboard' && signer) refreshDashboard();
-  if(name==='vault' && signer) updateRedeemView();
+  if(name==='vault' && signer){ updateRedeemView(); updateClaimEstimate(); }
 }
 
 /* ---- Wallet ---- */
@@ -416,6 +465,7 @@ async function connectWallet(){
     }
     updateInviteView(bound);
     updateRedeemView();
+    updateClaimEstimate();
     toast('钱包连接成功','success');
     refreshDashboard();
   }catch(e){
@@ -456,6 +506,58 @@ async function updateRedeemView(){
     document.getElementById('redeem-coming').style.display=enabled?'none':'block';
     document.getElementById('redeem-active').style.display=enabled?'block':'none';
   }catch(e){}
+}
+
+/* ---- Claim estimate ---- */
+async function updateClaimEstimate(){
+  if(!signer||!inviteContract) return;
+  try{
+    const va=await inviteContract.userVault(userAddr);
+    if(!va||va===ZERO){
+      document.getElementById('estPlaceholder').textContent='请先绑定邀请人';
+      document.getElementById('claimBtn').disabled=true;
+      return;
+    }
+    const vc=new ethers.Contract(va,VAULT_ABI,provider);
+    const poolId=await inviteContract.POOL_ID();
+    const hookContract=new ethers.Contract(HOOK_ADDR,HOOK_ABI,provider);
+
+    const [debt,coll,bmResult]=await Promise.all([
+      vc.getDebt(), vc.getCollateral(),
+      hookContract.estimateBorrowMore(poolId,va)
+    ]);
+
+    document.getElementById('estPlaceholder').style.display='none';
+    document.getElementById('estLoaded').style.display='block';
+    document.getElementById('est-collateral').textContent=parseFloat(ethers.formatUnits(coll,18)).toFixed(2);
+    document.getElementById('est-debt').textContent=parseFloat(ethers.formatEther(debt)).toFixed(6);
+
+    const estEl=document.getElementById('estStatus');
+    const additionalEth=bmResult.additionalEth;
+
+    if(additionalEth===0n){
+      estEl.innerHTML='暂无可领取的收益';
+      estEl.className='est-status not-claimable';
+      document.getElementById('claimBtn').disabled=true;
+      document.getElementById('est-reward').textContent='0';
+    }else{
+      // estimate how many OTO tokens the ETH would buy
+      let estOto=0n;
+      try{
+        const buyResult=await hookContract.estimateBuy(poolId,additionalEth);
+        estOto=buyResult.tokensOut;
+      }catch(e){}
+      const userShare=estOto*80n/100n;
+      const formatted=parseFloat(ethers.formatUnits(userShare,18)).toFixed(2);
+      document.getElementById('est-reward').textContent=formatted;
+      estEl.innerHTML='预估可领取 <strong>'+formatted+' OTO</strong>';
+      estEl.className='est-status claimable';
+      document.getElementById('claimBtn').disabled=false;
+    }
+  }catch(e){
+    document.getElementById('estPlaceholder').textContent='数据加载失败';
+    document.getElementById('claimBtn').disabled=true;
+  }
 }
 
 function setLoading(id,on,origText){
@@ -512,6 +614,7 @@ async function doClaim(){
     toast('交易已提交，等待链上确认...','info');
     await tx.wait();
     toast('领取成功','success');
+    updateClaimEstimate();
   }catch(e){toast('领取失败: '+(e.shortMessage||e.reason||e.message),'error')}
   finally{setLoading('claimBtn',false,'领取收益')}
 }
